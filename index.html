@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 東京&北海道冬雪旅程儀表板</title>
+    
+    <!-- 1. 載入 Tailwind CSS (樣式) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. 載入 Lucide Icons (圖示) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- 3. 載入 Chart.js (圖表) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; }
+        /* 隱藏捲軸但保持功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Tab 動畫與狀態 */
+        .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .tab-content.active { display: block; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tab-btn.active {
+            background-color: white;
+            color: #1e3a8a; /* blue-900 */
+            border-top: 4px solid #3b82f6; /* blue-500 */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        .tab-btn:not(.active) {
+            background-color: rgba(30, 58, 138, 0.4);
+            color: #dbeafe; /* blue-100 */
+        }
+        .tab-btn:not(.active):hover {
+            background-color: rgba(30, 58, 138, 0.6);
+        }
+
+        /* 編輯模式樣式 */
+        [contenteditable="true"]:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-radius: 4px;
+            cursor: text;
+        }
+        [contenteditable="true"]:focus {
+            background-color: white;
+            outline: 2px solid #3b82f6;
+            border-radius: 4px;
+            padding: 2px 4px;
+            z-index: 10;
+            position: relative;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 pb-12" style="display: none;">
+
+    <!-- ========================================== -->
+    <!-- 簡易密碼保護腳本 (Simple Password Protection) -->
+    <!-- ========================================== -->
+    <script>
+        (function() {
+            // [設定] 請在此行修改您的密碼 (字串格式)
+            const ACCESS_PASSWORD = "0425251900"; 
+
+            // 檢查 LocalStorage 是否已經驗證過 (避免重新整理一直跳出)
+            const isAuth = sessionStorage.getItem('is_dashboard_auth');
+
+            if (isAuth === 'true') {
+                document.body.style.display = 'block';
+                return;
+            }
+
+            // 延遲一點執行以免阻塞 DOM 渲染
+            setTimeout(() => {
+                const input = prompt("請輸入密碼以檢視 2026 冬雪之旅行程：\n(預設密碼: 8888)");
+
+                if (input === ACCESS_PASSWORD) {
+                    // 密碼正確，顯示頁面並紀錄狀態
+                    document.body.style.display = 'block';
+                    sessionStorage.setItem('is_dashboard_auth', 'true');
+                } else {
+                    // 密碼錯誤，覆蓋頁面內容
+                    document.body.style.display = 'flex';
+                    document.body.style.justifyContent = 'center';
+                    document.body.style.alignItems = 'center';
+                    document.body.style.height = '100vh';
+                    document.body.innerHTML = `
+                        <div style="text-align:center; padding: 20px; background:white; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                            <div style="font-size: 48px; margin-bottom: 10px;">🔒</div>
+                            <h1 style="font-size: 24px; color: #1e293b; margin-bottom: 10px; font-weight:bold;">存取被拒 (Access Denied)</h1>
+                            <p style="color: #64748b; margin-bottom: 20px;">您輸入的密碼錯誤，無法檢視此行程內容。</p>
+                            <button onclick="location.reload()" style="background:#3b82f6; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:500;">重新輸入</button>
+                        </div>
+                    `;
+                }
+            }, 100);
+        })();
+    </script>
+    <!-- ========================================== -->
+
+    <!-- Header -->
+    <header class="bg-blue-900 text-white p-6 shadow-lg relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+            <i data-lucide="snowflake" width="120" height="120"></i>
+        </div>
+        <div class="max-w-6xl mx-auto relative z-10">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold tracking-wide mb-2 flex items-center gap-3">
+                        <i data-lucide="plane" class="rotate-[-45deg]"></i> 
+                        2026 東京 & 北海道冬雪之旅
+                    </h1>
+                    <p class="text-blue-200 flex items-center gap-2 text-sm md:text-base">
+                        <i data-lucide="calendar" width="16"></i> 2026/02/01 - 02/12 (12 Days)
+                        <span class="mx-2">|</span>
+                        <i data-lucide="users" width="16"></i> 4 Adults
+                    </p>
+                </div>
+                <!-- 已移除 TWD Base Currency 區塊 -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto -mt-4 px-4 relative z-20">
+        
+        <!-- Navigation Tabs -->
+        <div class="flex gap-1 overflow-x-auto no-scrollbar">
+            <button onclick="switchTab('overview')" id="btn-overview" class="tab-btn active flex items-center gap-2 px-6 py-3 rounded-t-lg font-medium transition-colors whitespace-nowrap">
+                <i data-lucide="image" width="18"></i> 行程總覽
+            </button>
+            <button onclick="switchTab('daily')" id="btn-daily" class="tab-btn flex items-center gap-2 px-6 py-3 rounded-t-lg font-medium transition-colors whitespace-nowrap">
+                <i data-lucide="calendar-days" width="18"></i> 每日細節
+            </button>
+            <button onclick="switchTab('budget')" id="btn-budget" class="tab-btn flex items-center gap-2 px-6 py-3 rounded-t-lg font-medium transition-colors whitespace-nowrap">
+                <i data-lucide="calculator" width="18"></i> 預算估算
+            </button>
+            <button onclick="switchTab('advisories')" id="btn-advisories" class="tab-btn flex items-center gap-2 px-6 py-3 rounded-t-lg font-medium transition-colors whitespace-nowrap">
+                <i data-lucide="alert-triangle" width="18"></i> 注意事項
+            </button>
+        </div>
+
+        <!-- Content Container -->
+        <div class="bg-white rounded-b-xl rounded-tr-xl shadow-xl min-h-[600px] p-4 md:p-8 border border-gray-100">
+            
+            <!-- 1. Overview Tab -->
+            <div id="tab-overview" class="tab-content active">
+                <div class="flex items-center gap-2 mb-6 border-b pb-2 border-gray-200">
+                    <div class="p-2 bg-blue-100 rounded-lg text-blue-600">
+                        <i data-lucide="map" width="20"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800">12天極致行程地圖概覽</h2>
+                </div>
+
+                <!-- Image Container -->
+                <div class="w-full bg-gray-50 rounded-xl overflow-hidden border border-gray-200 shadow-sm mb-8 flex justify-center items-center min-h-[400px]">
+                    <!-- GitHub Pages 相容路徑：只要圖片與 index.html 在同一層，這裡用 ./ 即可 -->
+                    <img src="./20260201_0212_Schedule_Ralph.png" 
+                         alt="行程總覽圖片" 
+                         class="w-full h-auto object-contain max-h-screen"
+                         onerror="this.onerror=null; this.src=''; this.parentElement.innerHTML='<div class=\'text-center p-8 text-gray-500\'><i data-lucide=\'image-off\' class=\'mx-auto mb-2 text-gray-400\' width=\'48\'></i><p class=\'font-bold\'>無法載入圖片</p><p class=\'text-sm\'>請確保檔案 20260201_0212_Schedule_Ralph.png 與此 index.html 位於同一 Repository 根目錄中。</p></div>'; lucide.createIcons();">
+                </div>
+
+                <!-- Map Codes Section -->
+                <div class="bg-blue-50 p-6 rounded-lg border border-blue-100 mt-8">
+                    <h3 class="font-bold text-blue-800 mb-4 flex items-center gap-2">
+                        <i data-lucide="car" width="18"></i> 重點自駕路段提醒 (Google Map 導航)
+                    </h3>
+                    <div id="mapcode-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                        <!-- Javascript will populate this -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Daily Details Tab -->
+            <div id="tab-daily" class="tab-content">
+                <div class="flex justify-between items-center mb-6 border-b pb-2 border-gray-200">
+                    <div class="flex items-center gap-2">
+                        <div class="p-2 bg-blue-100 rounded-lg text-blue-600">
+                            <i data-lucide="calendar-check" width="20"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-800">每日詳細日程表</h2>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="text-xs text-gray-400 hidden sm:inline-block">提示：點擊文字即可編輯內容</span>
+                        <button onclick="toggleAllDays()" class="text-sm text-blue-600 hover:underline font-medium">
+                            展開/收合全部
+                        </button>
+                    </div>
+                </div>
+
+                <div id="daily-container" class="space-y-4">
+                    <!-- Javascript will populate this -->
+                </div>
+            </div>
+
+            <!-- 3. Budget Tab -->
+            <div id="tab-budget" class="tab-content">
+                <div class="flex items-center gap-2 mb-6 border-b pb-2 border-gray-200">
+                    <div class="p-2 bg-blue-100 rounded-lg text-blue-600">
+                        <i data-lucide="calculator" width="20"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800">旅費預算估算表 (TWD)</h2>
+                </div>
+
+                <div class="bg-white p-2 md:p-6 rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[600px]">
+                        <thead>
+                            <tr class="border-b-2 border-blue-100 text-gray-600">
+                                <th class="py-3 pl-2">項目分類</th>
+                                <th class="py-3 w-40">金額 (TWD)</th>
+                                <th class="py-3">備註說明</th>
+                                <th class="py-3 w-10"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="budget-tbody">
+                            <!-- Javascript will populate this -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-blue-50 font-bold text-blue-900">
+                                <td class="py-3 pl-4">總計預估</td>
+                                <td class="py-3 pr-2 text-right font-mono text-lg" id="budget-total">NT$ 0</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <button onclick="addBudgetItem()" class="mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 px-2 py-1 hover:bg-blue-50 rounded">
+                        <i data-lucide="plus" width="16"></i> 新增預算項目
+                    </button>
+                </div>
+
+                <div class="mt-6 p-4 bg-yellow-50 border border-yellow-100 rounded-lg text-sm text-yellow-800 flex gap-3">
+                    <i data-lucide="alert-triangle" class="shrink-0" width="20"></i>
+                    <div>
+                       <p class="font-bold mb-1">預算小提醒</p>
+                       <p>以上金額僅為預估，實際匯率請參考出發前銀行公告。建議額外準備 10% 現金以備不時之需（部分北海道鄉下餐廳可能只收現金）。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Advisories Tab -->
+            <div id="tab-advisories" class="tab-content">
+                <div class="flex items-center gap-2 mb-6 border-b pb-2 border-gray-200">
+                    <div class="p-2 bg-blue-100 rounded-lg text-blue-600">
+                        <i data-lucide="thermometer-snowflake" width="20"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800">氣候與注意事項</h2>
+                </div>
+
+                <!-- Chart Section -->
+                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-8">
+                    <h3 class="font-bold text-gray-700 mb-4">2月氣溫對比：東京 vs 札幌 (°C)</h3>
+                    <div class="relative h-[300px] w-full">
+                        <canvas id="tempChart"></canvas>
+                    </div>
+                    <p class="text-center text-sm text-gray-500 mt-2">*札幌體感溫度會因風雪更低，請務必做好防風措施。</p>
+                </div>
+
+                <!-- Info Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Outfit -->
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-lg text-pink-600 flex items-center gap-2">
+                                <i data-lucide="shirt" width="20"></i> 高中女生雪地穿搭
+                            </h3>
+                            <button onclick="addAdvisoryItem('outfit')" class="text-xs bg-pink-50 text-pink-600 hover:bg-pink-100 px-2 py-1 rounded transition-colors">+ 新增建議</button>
+                        </div>
+                        <ul id="outfit-list" class="space-y-3 text-sm text-gray-700">
+                            <!-- JS populated -->
+                        </ul>
+                    </div>
+                    <!-- Drive -->
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-lg text-blue-800 flex items-center gap-2">
+                                <i data-lucide="car" width="20"></i> 北海道自駕 & 滑雪
+                            </h3>
+                            <button onclick="addAdvisoryItem('drive')" class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded transition-colors">+ 新增注意</button>
+                        </div>
+                        <ul id="drive-list" class="space-y-3 text-sm text-gray-700">
+                             <!-- JS populated -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- DATA INITIALIZATION ---
+        
+        // Default Data
+        const DEFAULT_ITINERARY_DATA = [
+            { day: 1, date: "2026/02/01 (日)", city: "Tokyo", title: "抵達東京 & 高輪 Gateway 探索", icon: "plane", weather: "晴 6°C", highlights: ["NH852 抵達羽田", "TAKANAWA GATEWAY CITY", "品川晚餐"], stay: "品川王子大飯店 N Tower", transport: "飛機 (NH852), 電車", details: [ { id: 101, time: "13:30", action: "NH852 起飛 (TSA 松山)", type: "transport" }, { id: 102, time: "17:30", action: "抵達東京羽田 (HND)", type: "transport" }, { id: 103, time: "19:00", action: "飯店 Check-in", location: "Shinagawa Prince Hotel", type: "stay" }, { id: 104, time: "19:30", action: "晚餐：Singapore Seafood Republic 或 Sarabeth's", location: "Shinagawa Station", type: "food" }, { id: 105, time: "21:00", action: "探索 TAKANAWA GATEWAY CITY (2025新地標)", location: "Takanawa Gateway Station", type: "activity" } ] },
+            { day: 2, date: "2026/02/02 (一)", city: "Tokyo", title: "御茶之水雪具 & 東京新地標", icon: "shopping-bag", weather: "多雲 5°C", highlights: ["雪具採買", "SHIBUYA SKY", "麻布台之丘 teamLab"], stay: "品川王子大飯店 N Tower", transport: "電車", details: [ { id: 201, time: "10:00", action: "御茶之水雪具街採買 (全家裝備)", location: "Ochanomizu Ski Shop Street", type: "shopping" }, { id: 202, time: "12:30", action: "午餐：豚野郎 (炭燒豚丼) 或 Bondy (歐風咖哩)", location: "Ochanomizu", type: "food" }, { id: 203, time: "14:30", action: "澀谷 SHIBUYA SKY 或 麻布台之丘 teamLab Borderless", location: "SHIBUYA SKY", type: "activity" }, { id: 204, time: "18:30", action: "晚餐：敘敘苑 (品川店) 或 鳥貴族", location: "Shinagawa", type: "food" } ] },
+            { day: 3, date: "2026/02/03 (二)", city: "Hokkaido", title: "飛往北國 & 自駕前往 Tomamu", icon: "car", weather: "雪 -2°C", highlights: ["NH61 飛千歲", "取車 (Toyota NOAH)", "Club Med"], stay: "Club Med Tomamu", transport: "飛機 (NH61), 自駕", details: [ { id: 301, time: "11:00", action: "NH61 起飛 (HND)", type: "transport" }, { id: 302, time: "12:35", action: "抵達新千歲 (CTS)", type: "transport" }, { id: 303, time: "13:30", action: "Worldnet Rent Car 取車 (Toyota NOAH/VOXY)", location: "Worldnet Rent a Car New Chitose", type: "transport" }, { id: 304, time: "14:00", action: "午餐：奥芝商店 湯咖哩 (鮭魚公園千歲)", location: "Salmon Park Chitose", type: "food" }, { id: 305, time: "15:30", action: "自駕前往 Tomamu (MapCode: 602 431 771*27)", location: "Club Med Tomamu", type: "transport" }, { id: 306, time: "18:00", action: "Club Med Buffet 晚餐", type: "food" } ] },
+            { day: 4, date: "2026/02/04 (三)", city: "Hokkaido", title: "Club Med 全包式滑雪體驗", icon: "snowflake", weather: "大雪 -6°C", highlights: ["分級滑雪課程", "愛絲冰城 (Ice Village)"], stay: "Club Med Tomamu", transport: "度假村內", details: [ { id: 401, time: "09:00", action: "參加分級滑雪課程 / 雪上活動", type: "activity" }, { id: 402, time: "12:00", action: "度假村午餐", type: "food" }, { id: 403, time: "14:00", action: "下午滑雪練習", type: "activity" }, { id: 404, time: "18:00", action: "晚餐 (可預約燒肉 Haku)", type: "food" }, { id: 405, time: "20:00", action: "愛絲冰城 (Ice Village)：冰之教堂、冰酒吧", location: "Ice Village Tomamu", type: "activity" } ] },
+            { day: 5, date: "2026/02/05 (四)", city: "Hokkaido", title: "微笑海灘 & 露天雪見溫泉", icon: "snowflake", weather: "雪 -5°C", highlights: ["滑雪進階", "Mina-Mina Beach", "木林之湯"], stay: "Club Med Tomamu", transport: "度假村內", details: [ { id: 501, time: "09:00", action: "上午滑雪/雪板課程", type: "activity" }, { id: 502, time: "14:00", action: "微笑海灘 (Mina-Mina Beach) 室內造浪池", location: "Mina-Mina Beach", type: "activity" }, { id: 503, time: "16:00", action: "木林之湯 (露天雪景溫泉)", type: "activity" } ] },
+            { day: 6, date: "2026/02/06 (五)", city: "Hokkaido", title: "霧冰平台 & 雲海蘇打", icon: "camera", weather: "多雲 -7°C", highlights: ["霧冰平台", "G.O. Show"], stay: "Club Med Tomamu", transport: "纜車", details: [ { id: 601, time: "09:30", action: "搭纜車上霧冰平台 (Terrace of Frost Tree)", location: "Tomamu Cloud Walk", type: "activity" }, { id: 602, time: "10:30", action: "品嚐雲海蘇打", type: "food" }, { id: 603, time: "19:30", action: "G.O. Show 表演秀 / 主題派對", type: "activity" } ] },
+            { day: 7, date: "2026/02/07 (六)", city: "Sapporo", title: "移動至札幌 & 雪祭點燈", icon: "car", weather: "雪 -3°C", highlights: ["最後滑雪", "札幌雪祭(大通會場)"], stay: "VILLA KOSHIDO ODORI", transport: "自駕 (約2小時)", details: [ { id: 701, time: "09:00", action: "最後滑雪時光", type: "activity" }, { id: 702, time: "12:00", action: "午餐後退房出發 (MapCode: 9 555 061*38)", type: "transport" }, { id: 703, time: "15:30", action: "Check-in VILLA KOSHIDO ODORI", location: "VILLA KOSHIDO ODORI", type: "stay" }, { id: 704, time: "17:30", action: "札幌雪祭 (大通會場) 欣賞巨型雪雕點燈", location: "Odori Park", type: "activity" }, { id: 705, time: "19:30", action: "晚餐：Suage+ 湯咖哩 或 達摩成吉思汗烤肉", location: "Susukino", type: "food" } ] },
+            { day: 8, date: "2026/02/08 (日)", city: "Sapporo", title: "建築巡禮 & 藻岩山夜景", icon: "map-pin", weather: "晴 -2°C", highlights: ["F Village", "頭大佛", "藻岩山夜景"], stay: "VILLA KOSHIDO ODORI", transport: "自駕", details: [ { id: 801, time: "09:30", action: "F Village 棒球園區 (MapCode: 430 460 777*48)", location: "Hokkaido Ballpark F Village", type: "activity" }, { id: 802, time: "11:30", action: "三井 Outlet Park 北廣島 (午餐: 豚丼 Butahage)", location: "Mitsui Outlet Park Sapporo Kitahiroshima", type: "shopping" }, { id: 803, time: "14:10", action: "頭大佛殿 (安藤忠雄設計, 15:00閉園, MapCode: 950 792 513)", location: "Hill of the Buddha", type: "activity" }, { id: 804, time: "16:30", action: "藻岩山纜車 (MapCode: 952 116 6*41)", location: "Mt. Moiwa Ropeway", type: "activity" }, { id: 805, time: "18:30", action: "晚餐：THE JEWELS (山頂法式) 或 螃蟹本家", type: "food" } ] },
+            { day: 9, date: "2026/02/09 (一)", city: "Otaru", title: "小樽浪漫雪燈之路", icon: "snowflake", weather: "雪 -4°C", highlights: ["小樽運河", "堺町通", "雪燈之路"], stay: "VILLA KOSHIDO ODORI", transport: "自駕", details: [ { id: 901, time: "10:00", action: "出發前往小樽 (MapCode: 493 690 538*13)", type: "transport" }, { id: 902, time: "11:30", action: "午餐：政壽司 或 和樂迴轉壽司", location: "Otaru Masazushi", type: "food" }, { id: 903, time: "13:30", action: "堺町通逛街 (北一硝子、音樂盒堂、LeTAO)", location: "Sakaimachi Street", type: "shopping" }, { id: 904, time: "17:00", action: "小樽雪燈之路 (運河浮球蠟燭)", location: "Otaru Canal", type: "activity" }, { id: 905, time: "19:30", action: "晚餐：拉麵共和國 或 冰雪之門", location: "Sapporo Ramen Republic", type: "food" } ] },
+            { day: 10, date: "2026/02/10 (二)", city: "Tokyo", title: "羊之丘 & 返回東京", icon: "plane", weather: "多雲 5°C", highlights: ["羊之丘展望台", "NH62 返回東京"], stay: "品川王子大飯店 N Tower", transport: "自駕, 飛機 (NH62)", details: [ { id: 1001, time: "09:30", action: "羊之丘展望台 (MapCode: 952 728 8*46)", location: "Hitsujigaoka Observation Hill", type: "activity" }, { id: 1002, time: "10:30", action: "前往 Worldnet Rent Car 還車", location: "Worldnet Rent a Car New Chitose", type: "transport" }, { id: 1003, time: "11:30", action: "機場午餐：一幻拉麵 / Kinotoya", location: "New Chitose Airport", type: "food" }, { id: 1004, time: "12:30", action: "NH62 起飛 (CTS)", type: "transport" }, { id: 1005, time: "14:10", action: "抵達東京羽田 (HND)", type: "transport" }, { id: 1006, time: "18:00", action: "晚餐：Tsubame Grill 漢堡排", location: "Tsubame Grill Shinagawa", type: "food" } ] },
+            { day: 11, date: "2026/02/11 (三)", city: "Tokyo", title: "讀賣樂園 & 寶可夢 KANTO", icon: "camera", weather: "晴 7°C", highlights: ["寶可夢樂園 KANTO", "寶石燈光秀"], stay: "品川王子大飯店 N Tower", transport: "電車", details: [ { id: 1101, time: "10:00", action: "前往讀賣樂園 (Yomiuriland)", location: "Yomiuriland", type: "activity" }, { id: 1102, time: "11:00", action: "探索 PokéPark KANTO (預計開幕)", type: "activity" }, { id: 1103, time: "13:00", action: "午餐：樂園內寶可夢主題餐廳", type: "food" }, { id: 1104, time: "17:00", action: "寶石燈光秀 (Jewellumination)", type: "activity" }, { id: 1105, time: "19:30", action: "晚餐：六歌仙 (新宿燒肉) 或 HARBS", location: "Rokkasen", type: "food" } ] },
+            { day: 12, date: "2026/02/12 (四)", city: "Tokyo", title: "最後採買 & 賦歸", icon: "plane", weather: "多雲 8°C", highlights: ["Ecute 品川伴手禮", "NH853 返回台北"], stay: "溫暖的家", transport: "計程車, 飛機 (NH853)", details: [ { id: 1201, time: "09:00", action: "Ecute 品川最後採買 (Butter Butler, Sugar Butter Tree)", location: "ecute Shinagawa", type: "shopping" }, { id: 1202, time: "10:30", action: "搭計程車前往羽田機場", type: "transport" }, { id: 1203, time: "12:40", action: "NH853 起飛 (HND)", type: "transport" }, { id: 1204, time: "15:50", action: "抵達台北松山 (TSA)", type: "transport" } ] }
+        ];
+
+        const DEFAULT_OUTFIT_TIPS = [
+            {id: 1, text: "<strong>洋蔥式穿法：</strong>發熱衣 + 針織毛衣 + 防風防水長版羽絨外套（進室內有暖氣可脫）。"},
+            {id: 2, text: "<strong>下半身：</strong>內搭刷毛褲襪 + 寬褲或裙裝（拍照好看），或直接穿防水雪褲（滑雪時）。"},
+            {id: 3, text: "<strong>配件必備：</strong>毛帽（遮耳）、圍巾、手套（防水款為佳）、暖暖包（貼式）。"},
+            {id: 4, text: "<strong>鞋子關鍵：</strong>防滑防水雪靴是必須的！一般球鞋在結冰路面非常危險。建議在當地買「防滑鞋墊」。"}
+        ];
+
+        const DEFAULT_DRIVE_TIPS = [
+            {id: 1, text: "<strong>雪地駕駛：</strong>切勿急踩煞車！起步要慢。遇到暴風雪（Whiteout）請開啟雙黃燈並靠邊暫停。"},
+            {id: 2, text: "<strong>導航技巧：</strong>優先使用 MapCode。山區訊號可能不佳，建議下載離線地圖。"},
+            {id: 3, text: "<strong>滑雪安全：</strong>Club Med 課程分級嚴謹，請誠實告知程度。雪鏡必戴（預防雪盲）。"},
+            {id: 4, text: "<strong>行程彈性：</strong>冬日交通易受天氣影響（JR停駛/高速公路封閉），務必預留緩衝時間。"}
+        ];
+
+        const DEFAULT_BUDGET_ITEMS = [
+            { id: 1, category: "機票 (4人)", amount: 88000, note: "NH松山羽田 + 內陸段" },
+            { id: 2, category: "住宿 (11晚)", amount: 180000, note: "Club Med 3晚全包 + 市區飯店" },
+            { id: 3, category: "租車 (8天)", amount: 35000, note: "Toyota NOAH + 保險 + ETC" },
+            { id: 4, category: "餐飲", amount: 60000, note: "含燒肉、螃蟹大餐預算" },
+            { id: 5, category: "門票/體驗", amount: 25000, note: "滑雪課、纜車、樂園" },
+            { id: 6, category: "購物預備金", amount: 50000, note: "伴手禮、雪具" },
+        ];
+
+        const MAP_CODES = {
+            "Club Med Tomamu": "602 431 771*27",
+            "VILLA KOSHIDO ODORI": "9 555 061*38",
+            "F Village": "430 460 777*48",
+            "Hill of the Buddha": "950 792 513",
+            "Mt. Moiwa Ropeway": "952 116 6*41",
+            "Otaru Canal": "493 690 538*13",
+            "Hitsujigaoka": "952 728 8*46",
+            "Worldnet Return": "0123-21-8558"
+        };
+
+        // State variables with LocalStorage check
+        let ITINERARY_DATA = JSON.parse(localStorage.getItem('ITINERARY_DATA')) || DEFAULT_ITINERARY_DATA;
+        let OUTFIT_TIPS = JSON.parse(localStorage.getItem('OUTFIT_TIPS')) || DEFAULT_OUTFIT_TIPS;
+        let DRIVE_TIPS = JSON.parse(localStorage.getItem('DRIVE_TIPS')) || DEFAULT_DRIVE_TIPS;
+        let budgetItems = JSON.parse(localStorage.getItem('budgetItems')) || DEFAULT_BUDGET_ITEMS;
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderDaily();
+            renderMapCodes();
+            renderBudget();
+            renderAdvisories();
+            lucide.createIcons();
+            initChart();
+        });
+
+        // --- FUNCTIONS ---
+
+        // Save Data Helper
+        function saveData() {
+            localStorage.setItem('ITINERARY_DATA', JSON.stringify(ITINERARY_DATA));
+            localStorage.setItem('OUTFIT_TIPS', JSON.stringify(OUTFIT_TIPS));
+            localStorage.setItem('DRIVE_TIPS', JSON.stringify(DRIVE_TIPS));
+            localStorage.setItem('budgetItems', JSON.stringify(budgetItems));
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById(`btn-${tabId}`).classList.add('active');
+        }
+
+        function openGoogleMaps(query) {
+            if (!query) return;
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`, '_blank');
+        }
+
+        // --- MAP CODES ---
+        function renderMapCodes() {
+            const container = document.getElementById('mapcode-grid');
+            container.innerHTML = Object.entries(MAP_CODES).map(([name, code]) => `
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-3 rounded shadow-sm border border-gray-100 gap-2">
+                    <button onclick="openGoogleMaps('${name}')" class="font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors text-left">
+                        <i data-lucide="map-pin" width="16"></i> ${name}
+                    </button>
+                    <code class="bg-gray-100 px-2 py-1 rounded text-gray-600 font-mono select-all cursor-pointer hover:bg-gray-200 text-xs sm:text-sm whitespace-nowrap" title="點擊全選 MapCode">${code}</code>
+                </div>
+            `).join('');
+        }
+
+        // --- DAILY ITINERARY ---
+        let isAllExpanded = false;
+        function toggleAllDays() {
+            isAllExpanded = !isAllExpanded;
+            ITINERARY_DATA.forEach(day => {
+                const el = document.getElementById(`day-content-${day.day}`);
+                const arrow = document.getElementById(`arrow-${day.day}`);
+                if(isAllExpanded) {
+                    el.classList.remove('hidden');
+                    arrow.innerHTML = `<i data-lucide="chevron-up" width="20"></i>`;
+                } else {
+                    el.classList.add('hidden');
+                    arrow.innerHTML = `<i data-lucide="chevron-down" width="20"></i>`;
+                }
+            });
+            lucide.createIcons();
+        }
+
+        function toggleDay(dayId) {
+            const el = document.getElementById(`day-content-${dayId}`);
+            const arrow = document.getElementById(`arrow-${dayId}`);
+            el.classList.toggle('hidden');
+            const isHidden = el.classList.contains('hidden');
+            arrow.innerHTML = isHidden 
+                ? `<i data-lucide="chevron-down" width="20"></i>` 
+                : `<i data-lucide="chevron-up" width="20"></i>`;
+            lucide.createIcons();
+        }
+
+        function updateDailyDetail(dayId, detailId, field, value) {
+            const day = ITINERARY_DATA.find(d => d.day === dayId);
+            const detail = day.details.find(d => d.id === detailId);
+            if (detail) {
+                detail[field] = value;
+                saveData();
+            }
+        }
+
+        function addDailyDetail(dayId) {
+            const day = ITINERARY_DATA.find(d => d.day === dayId);
+            const newId = Date.now(); // Simple ID generation
+            day.details.push({
+                id: newId,
+                time: "00:00",
+                action: "新行程",
+                type: "activity",
+                location: ""
+            });
+            saveData();
+            renderDaily();
+            // Re-open the day
+            toggleDay(dayId);
+            toggleDay(dayId); // toggle twice to ensure open state or force open logic
+            document.getElementById(`day-content-${dayId}`).classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function removeDailyDetail(dayId, detailId) {
+            if(confirm('確定要刪除此行程嗎？')) {
+                const day = ITINERARY_DATA.find(d => d.day === dayId);
+                day.details = day.details.filter(d => d.id !== detailId);
+                saveData();
+                renderDaily();
+                document.getElementById(`day-content-${dayId}`).classList.remove('hidden');
+                lucide.createIcons();
+            }
+        }
+
+        function renderDaily() {
+            const container = document.getElementById('daily-container');
+            container.innerHTML = ITINERARY_DATA.map(day => `
+                <div class="border border-gray-200 rounded-lg overflow-hidden transition-all hover:border-blue-300">
+                    <div onclick="toggleDay(${day.day})" class="flex flex-col md:flex-row md:items-center p-4 bg-gray-50 cursor-pointer hover:bg-blue-50/50 select-none">
+                        <div class="flex items-center gap-4 flex-1">
+                            <div class="bg-blue-600 text-white w-12 h-12 rounded-lg flex flex-col items-center justify-center shrink-0 shadow-sm">
+                                <span class="text-xs font-light">Day</span>
+                                <span class="text-xl font-bold leading-none">${day.day}</span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg text-gray-800">${day.title}</h3>
+                                <div class="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                                    <span>${day.date}</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="map-pin" width="12"></i> ${day.city}</span>
+                                    <span class="flex items-center gap-1 bg-white px-2 rounded-full shadow-sm"><i data-lucide="${day.icon}" width="12"></i> ${day.weather}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 mt-3 md:mt-0 justify-between md:justify-end w-full md:w-auto">
+                            <div class="text-right hidden md:block">
+                                <div class="text-xs text-gray-400">住宿</div>
+                                <div class="text-sm font-medium text-gray-700 truncate max-w-[150px]">${day.stay}</div>
+                            </div>
+                            <div id="arrow-${day.day}" class="text-gray-400">
+                                <i data-lucide="chevron-down" width="20"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="day-content-${day.day}" class="hidden p-4 bg-white border-t border-gray-100">
+                        <div class="relative border-l-2 border-blue-100 ml-3 pl-6 space-y-6 py-2">
+                            ${day.details.map(detail => `
+                                <div class="relative group hover:bg-gray-50 p-2 rounded -ml-2">
+                                    <div class="absolute -left-[23px] top-4 w-4 h-4 rounded-full border-2 border-white shadow-sm z-10
+                                        ${detail.type === 'transport' ? 'bg-gray-400' : 
+                                          detail.type === 'food' ? 'bg-orange-400' : 
+                                          detail.type === 'shopping' ? 'bg-pink-400' : 'bg-blue-500'}">
+                                    </div>
+                                    <div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 w-full">
+                                        <!-- Time Edit -->
+                                        <div contenteditable="true" 
+                                             onblur="updateDailyDetail(${day.day}, ${detail.id}, 'time', this.innerText)"
+                                             class="font-mono text-sm font-bold text-gray-500 w-12 shrink-0 pt-0.5 border-b border-dashed border-transparent hover:border-gray-300"
+                                             title="點擊編輯時間">${detail.time}</div>
+                                        
+                                        <div class="flex-1 w-full">
+                                            <!-- Action Edit -->
+                                            <div contenteditable="true" 
+                                                 onblur="updateDailyDetail(${day.day}, ${detail.id}, 'action', this.innerText)"
+                                                 class="font-medium text-gray-800 border-b border-dashed border-transparent hover:border-gray-300"
+                                                 title="點擊編輯內容">${detail.action}</div>
+                                            
+                                            <!-- Location Logic -->
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <button onclick="event.stopPropagation(); openGoogleMaps('${detail.location || ''}')" 
+                                                    class="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium transition-colors bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-100"
+                                                    title="點擊導航">
+                                                    <i data-lucide="map-pin" width="12"></i>
+                                                </button>
+                                                
+                                                <div contenteditable="true" 
+                                                     onblur="updateDailyDetail(${day.day}, ${detail.id}, 'location', this.innerText)"
+                                                     class="text-xs text-gray-500 hover:text-blue-600 border-b border-dashed border-transparent hover:border-gray-300 min-w-[50px]"
+                                                     title="點擊編輯地點 (空值為無地點)">${detail.location || '新增地點...'}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Delete Button -->
+                                        <button onclick="removeDailyDetail(${day.day}, ${detail.id})" 
+                                                class="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity p-1">
+                                            <i data-lucide="x" width="16"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button onclick="addDailyDetail(${day.day})" class="ml-8 mt-2 text-sm text-blue-500 hover:text-blue-700 flex items-center gap-1 px-2 py-1 hover:bg-blue-50 rounded transition-colors">
+                            <i data-lucide="plus" width="14"></i> 新增行程
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- ADVISORIES ---
+        function renderAdvisories() {
+            // Render Outfit
+            document.getElementById('outfit-list').innerHTML = OUTFIT_TIPS.map(item => `
+                <li class="flex gap-2 group">
+                    <span class="text-pink-400 font-bold shrink-0">•</span>
+                    <span contenteditable="true" onblur="updateAdvisory('outfit', ${item.id}, this.innerHTML)" 
+                          class="flex-1 border-b border-dashed border-transparent hover:border-gray-300">
+                        ${item.text}
+                    </span>
+                    <button onclick="removeAdvisory('outfit', ${item.id})" class="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity px-1">×</button>
+                </li>
+            `).join('');
+
+            // Render Drive
+            document.getElementById('drive-list').innerHTML = DRIVE_TIPS.map(item => `
+                <li class="flex gap-2 group">
+                    <span class="text-blue-500 font-bold shrink-0">•</span>
+                    <span contenteditable="true" onblur="updateAdvisory('drive', ${item.id}, this.innerHTML)" 
+                          class="flex-1 border-b border-dashed border-transparent hover:border-gray-300">
+                        ${item.text}
+                    </span>
+                    <button onclick="removeAdvisory('drive', ${item.id})" class="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity px-1">×</button>
+                </li>
+            `).join('');
+        }
+
+        function updateAdvisory(type, id, newText) {
+            const list = type === 'outfit' ? OUTFIT_TIPS : DRIVE_TIPS;
+            const item = list.find(i => i.id === id);
+            if(item) {
+                item.text = newText;
+                saveData();
+            }
+        }
+
+        function addAdvisoryItem(type) {
+            const list = type === 'outfit' ? OUTFIT_TIPS : DRIVE_TIPS;
+            const newId = Date.now();
+            list.push({ id: newId, text: "點擊此處編輯新建議..." });
+            saveData();
+            renderAdvisories();
+        }
+
+        function removeAdvisory(type, id) {
+            if(type === 'outfit') {
+                OUTFIT_TIPS = OUTFIT_TIPS.filter(i => i.id !== id);
+            } else {
+                DRIVE_TIPS = DRIVE_TIPS.filter(i => i.id !== id);
+            }
+            saveData();
+            renderAdvisories();
+        }
+
+        // --- BUDGET ---
+        function renderBudget() {
+            const tbody = document.getElementById('budget-tbody');
+            tbody.innerHTML = budgetItems.map(item => `
+                <tr class="border-b border-gray-100 hover:bg-gray-50 group transition-colors">
+                    <td class="py-2 pl-2">
+                        <input type="text" value="${item.category}" onchange="updateBudget(${item.id}, 'category', this.value)" class="w-full bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-300 rounded px-1 py-1">
+                    </td>
+                    <td class="py-2">
+                        <input type="number" value="${item.amount}" onchange="updateBudget(${item.id}, 'amount', this.value)" class="w-full bg-transparent font-mono text-right focus:outline-none focus:ring-1 focus:ring-blue-300 rounded px-1 py-1">
+                    </td>
+                    <td class="py-2 text-gray-500 text-sm">
+                        <input type="text" value="${item.note}" onchange="updateBudget(${item.id}, 'note', this.value)" class="w-full bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-300 rounded px-1 py-1">
+                    </td>
+                    <td class="py-2 text-center">
+                        <button onclick="removeBudget(${item.id})" class="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity px-2">×</button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            const total = budgetItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+            document.getElementById('budget-total').innerText = 'NT$ ' + total.toLocaleString();
+        }
+
+        function updateBudget(id, field, value) {
+            const idx = budgetItems.findIndex(i => i.id === id);
+            if(idx !== -1) {
+                budgetItems[idx][field] = field === 'amount' ? Number(value) : value;
+                saveData();
+                renderBudget();
+            }
+        }
+
+        function removeBudget(id) {
+            budgetItems = budgetItems.filter(i => i.id !== id);
+            saveData();
+            renderBudget();
+        }
+
+        function addBudgetItem() {
+            const newId = Date.now();
+            budgetItems.push({ id: newId, category: "新增項目", amount: 0, note: "" });
+            saveData();
+            renderBudget();
+        }
+
+        // --- CHART ---
+        function initChart() {
+            const ctx = document.getElementById('tempChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['早晨', '中午', '傍晚', '深夜'],
+                    datasets: [
+                        {
+                            label: '東京 (Tokyo)',
+                            data: [2, 8, 5, 1],
+                            borderColor: '#f59e0b', // amber-500
+                            backgroundColor: '#f59e0b',
+                            borderWidth: 3,
+                            tension: 0.3
+                        },
+                        {
+                            label: '札幌 (Sapporo)',
+                            data: [-6, -1, -4, -7],
+                            borderColor: '#3b82f6', // blue-500
+                            backgroundColor: '#3b82f6',
+                            borderWidth: 3,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#1f2937',
+                            bodyColor: '#1f2937',
+                            borderColor: '#e5e7eb',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: { display: true, text: '溫度 (°C)' },
+                            grid: { color: '#f3f4f6' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
