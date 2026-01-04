@@ -248,7 +248,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-lg text-pink-600 flex items-center gap-2"><i data-lucide="shirt" width="20"></i> 高中女生雪地穿搭</h3>
+                            <h3 class="font-bold text-lg text-pink-600 flex items-center gap-2"><i data-lucide="shirt" width="20"></i> 雪地穿搭 & 其他</h3>
                             <button onclick="addAdvisoryItem('outfit')" class="text-xs bg-pink-50 text-pink-600 hover:bg-pink-100 px-2 py-1 rounded transition-colors">+ 新增建議</button>
                         </div>
                         <ul id="outfit-list" class="space-y-3 text-sm text-gray-700"></ul>
@@ -275,14 +275,13 @@
         // ⚠️ [Config Area] 請在此處填入您的 Firebase Config
         // =======================================================
         const firebaseConfig = {
-        apiKey: "AIzaSyD4aNoEYhuYBwLGyqZv9JtIE4HFq6uDdlM",
-      	authDomain: "winter-japan-trip.firebaseapp.com",
-      	projectId: "winter-japan-trip",
-      	storageBucket: "winter-japan-trip.firebasestorage.app",
-      	messagingSenderId: "670061783968",
-      	appId: "1:670061783968:web:9628749ededa595d4d12c5",
-      	measurementId: "G-89CDNJH3VZ"
-
+            apiKey: "AIzaSyD4aNoEYhuYBwLGyqZv9JtIE4HFq6uDdlM",
+            authDomain: "winter-japan-trip.firebaseapp.com",
+            projectId: "winter-japan-trip",
+            storageBucket: "winter-japan-trip.firebasestorage.app",
+            messagingSenderId: "670061783968",
+            appId: "1:670061783968:web:9628749ededa595d4d12c5",
+            measurementId: "G-89CDNJH3VZ"
         };
 
         // Initialize Firebase
@@ -377,8 +376,10 @@
                 renderAll();
                 updateStatus('saved');
             } else {
-                console.log("No such document! Initializing defaults...");
-                initializeDefaultData();
+                console.log("Document does not exist. Using Local Defaults (Read-Only).");
+                // 修正：當文件不存在時，僅在記憶體載入預設值，**不** 寫入雲端。
+                // 這樣可以防止新裝置誤判而覆蓋掉其實存在的資料。
+                loadDefaultsLocal();
             }
         }, (error) => {
             console.error("Firestore Error:", error);
@@ -401,13 +402,19 @@
             }
         });
 
-        async function initializeDefaultData() {
+        // 修正後的初始化函式：僅本地載入，不自動存檔
+        function loadDefaultsLocal() {
             ITINERARY_DATA = DEFAULT_ITINERARY_DATA;
             OUTFIT_TIPS = DEFAULT_OUTFIT_TIPS;
             DRIVE_TIPS = DEFAULT_DRIVE_TIPS;
             budgetItems = DEFAULT_BUDGET_ITEMS;
-            await saveToCloud();
+            
+            // 移除 await saveToCloud(); 以防止覆蓋
             renderAll();
+            
+            // 提示用戶狀態
+            const syncText = document.getElementById('sync-text');
+            if (syncText) syncText.innerText = "預設模式 (編輯後才會同步)";
         }
 
         function updateStatus(status) {
